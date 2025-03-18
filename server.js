@@ -7,8 +7,8 @@ const path = require('path');
 const app = express();
 app.use(cors());
 
-// Automatically downloads the latest yt-dlp binary
-const ytDlp = new YTDlpWrap();
+// Use manually installed yt-dlp binary
+const ytDlp = new YTDlpWrap("/usr/local/bin/yt-dlp");
 
 app.get('/download', async (req, res) => {
     const videoUrl = req.query.url;
@@ -17,7 +17,7 @@ app.get('/download', async (req, res) => {
     }
 
     const outputFileName = `audio_${Date.now()}.mp3`;
-    const outputPath = path.join('/tmp', outputFileName); // Use /tmp for temporary storage
+    const outputPath = path.join('/tmp', outputFileName); // Use /tmp for temp storage
 
     try {
         await ytDlp.execPromise([
@@ -27,7 +27,7 @@ app.get('/download', async (req, res) => {
         ]);
 
         res.download(outputPath, outputFileName, () => {
-            fs.unlinkSync(outputPath); // Delete file after sending
+            fs.unlinkSync(outputPath); // Delete after sending
         });
     } catch (error) {
         console.error("Download error:", error);
