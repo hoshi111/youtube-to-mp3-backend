@@ -3,11 +3,12 @@ const cors = require('cors');
 const YTDlpWrap = require('yt-dlp-wrap').default;
 const fs = require('fs');
 const { execSync } = require('child_process');
+const path = require('path');
 
 const app = express();
 app.use(cors());
 
-const ytDlpPath = "/usr/local/bin/yt-dlp";
+const ytDlpPath = "/tmp/yt-dlp"; // Store yt-dlp in /tmp/
 
 // Function to check and install yt-dlp if not found
 function installYtDlp() {
@@ -32,7 +33,7 @@ app.get('/download', async (req, res) => {
     }
 
     const outputFileName = `audio_${Date.now()}.mp3`;
-    const outputPath = `/tmp/${outputFileName}`;
+    const outputPath = path.join('/tmp', outputFileName); // Store files in /tmp/
 
     try {
         await ytDlp.execPromise([
