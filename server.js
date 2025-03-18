@@ -8,9 +8,10 @@ const path = require('path');
 const app = express();
 app.use(cors());
 
-const ytDlpPath = "/tmp/yt-dlp"; // Store yt-dlp in /tmp/
+const ytDlpPath = "/tmp/yt-dlp"; 
+const cookiesPath = "/app/youtube_cookies.txt"; // Railway allows /app/ for persistent storage
 
-// Function to check and install yt-dlp if not found
+// Function to check and install yt-dlp
 function installYtDlp() {
     if (!fs.existsSync(ytDlpPath)) {
         console.log("⚠️ yt-dlp not found. Downloading...");
@@ -33,17 +34,24 @@ app.get('/download', async (req, res) => {
     }
 
     const outputFileName = `audio_${Date.now()}.mp3`;
-    const outputPath = path.join('/tmp', outputFileName); // Store files in /tmp/
+    const outputPath = path.join('/tmp', outputFileName); // Store temporary files in /tmp/
 
     try {
-        await ytDlp.execPromise([
+        const args = [
             videoUrl,
             '-x', '--audio-format', 'mp3',
             '-o', outputPath
-        ]);
+        ];
+
+        // Use YouTube cookies if available
+        if (fs.existsSync(cookiesPath)) {
+            args.push("--cookies", cookiesPath);
+        }
+
+        await ytDlp.execPromise(args);
 
         res.download(outputPath, outputFileName, () => {
-            fs.unlinkSync(outputPath);
+            fs.unlinkSync(outputPath); // Clean up after download
         });
     } catch (error) {
         console.error("Download error:", error);
