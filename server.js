@@ -1,37 +1,42 @@
-const express = require("express");
-const ytdlp = require("ytdl-core");
-const fs = require("fs");
-const path = require("path");
-const cors = require("cors");
+const express = require('express');
+const cors = require('cors');
+const YTDlpWrap = require('yt-dlp-wrap').default;
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
-const PORT = 3000;
-
 app.use(cors());
-app.use(express.json());
 
-app.post("/convert", async (req, res) => {
-    const { url } = req.body;
-    if (!url) return res.status(400).json({ error: "YouTube URL is required" });
+// Use a bundled yt-dlp binary
+const ytDlp = new YTDlpWrap();
+
+app.get('/download', async (req, res) => {
+    const videoUrl = req.query.url;
+    if (!videoUrl) {
+        return res.status(400).json({ error: "Missing YouTube URL parameter" });
+    }
+
+    const outputFileName = `audio_${Date.now()}.mp3`;
+    const outputPath = path.join('/tmp', outputFileName); // Use /tmp for temp storage
 
     try {
-        const outputFileName = `audio-${Date.now()}.mp3`;
-        const outputPath = path.join(__dirname, "downloads", outputFileName);
+        await ytDlp.execPromise([
+            videoUrl,
+            '-x', '--audio-format', 'mp3',
+            '-o', outputPath
+        ]);
 
-        await ytdlp(url, {
-            output: outputPath,
-            extractAudio: true,
-            audioFormat: "mp3",
-            audioQuality: "320k",
-        });
-
-        res.download(outputPath, outputFileName, (err) => {
-            if (err) console.error("Download error:", err);
-            fs.unlinkSync(outputPath); // Delete file after download
+        res.download(outputPath, outputFileName, () => {
+            fs.unlinkSync(outputPath); // Delete after sending
         });
     } catch (error) {
-        res.status(500).json({ error: "Conversion failed", details: error.message });
+        console.error("Download error:", error);
+        res.status(500).json({ error: "Failed to download audio" });
     }
 });
 
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+// Start server on Render
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
