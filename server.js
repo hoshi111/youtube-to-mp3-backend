@@ -7,7 +7,7 @@ const path = require('path');
 const app = express();
 app.use(cors());
 
-// Use a bundled yt-dlp binary
+// Automatically downloads the latest yt-dlp binary
 const ytDlp = new YTDlpWrap();
 
 app.get('/download', async (req, res) => {
@@ -17,7 +17,7 @@ app.get('/download', async (req, res) => {
     }
 
     const outputFileName = `audio_${Date.now()}.mp3`;
-    const outputPath = path.join('/tmp', outputFileName); // Use /tmp for temp storage
+    const outputPath = path.join('/tmp', outputFileName); // Use /tmp for temporary storage
 
     try {
         await ytDlp.execPromise([
@@ -27,7 +27,7 @@ app.get('/download', async (req, res) => {
         ]);
 
         res.download(outputPath, outputFileName, () => {
-            fs.unlinkSync(outputPath); // Delete after sending
+            fs.unlinkSync(outputPath); // Delete file after sending
         });
     } catch (error) {
         console.error("Download error:", error);
@@ -35,7 +35,7 @@ app.get('/download', async (req, res) => {
     }
 });
 
-// Start server on Render
+// Start server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
