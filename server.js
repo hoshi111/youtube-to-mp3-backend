@@ -1,50 +1,37 @@
-const express = require('express');
-const ytdl = require('ytdl-core');
-const ffmpeg = require('fluent-ffmpeg');
-const path = require('path');
-const cors = require('cors');
-const fs = require('fs');
+const express = require("express");
+const ytdlp = require("ytdl-core");
+const fs = require("fs");
+const path = require("path");
+const cors = require("cors");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = 3000;
 
 app.use(cors());
 app.use(express.json());
 
-// Endpoint to handle the YouTube video conversion
-app.post('/convert', async (req, res) => {
-  const { url } = req.body;
+app.post("/convert", async (req, res) => {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: "YouTube URL is required" });
 
-  if (!url || !ytdl.validateURL(url)) {
-    return res.status(400).json({ error: 'Invalid YouTube URL' });
-  }
+    try {
+        const outputFileName = `audio-${Date.now()}.mp3`;
+        const outputPath = path.join(__dirname, "downloads", outputFileName);
 
-  try {
-    const videoStream = ytdl(url, { quality: 'highestaudio' });
+        await ytdlp(url, {
+            output: outputPath,
+            extractAudio: true,
+            audioFormat: "mp3",
+            audioQuality: "320k",
+        });
 
-    // Generate a temporary file name
-    const tempFilePath = path.join(__dirname, 'temp.mp3');
-
-    ffmpeg(videoStream)
-      .audioCodec('libmp3lame')
-      .format('mp3')
-      .on('end', () => {
-        res.json({ downloadUrl: `/downloads/temp.mp3` });
-      })
-      .on('error', (err) => {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to convert video' });
-      })
-      .save(tempFilePath);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to process the video' });
-  }
+        res.download(outputPath, outputFileName, (err) => {
+            if (err) console.error("Download error:", err);
+            fs.unlinkSync(outputPath); // Delete file after download
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Conversion failed", details: error.message });
+    }
 });
 
-// Serve the converted file for download
-app.use('/downloads', express.static(path.join(__dirname, '')));
-
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
