@@ -2,13 +2,28 @@ const express = require('express');
 const cors = require('cors');
 const YTDlpWrap = require('yt-dlp-wrap').default;
 const fs = require('fs');
-const path = require('path');
+const { execSync } = require('child_process');
 
 const app = express();
 app.use(cors());
 
-// Use manually installed yt-dlp binary
-const ytDlp = new YTDlpWrap("/usr/local/bin/yt-dlp");
+const ytDlpPath = "/usr/local/bin/yt-dlp";
+
+// Function to check and install yt-dlp if not found
+function installYtDlp() {
+    if (!fs.existsSync(ytDlpPath)) {
+        console.log("⚠️ yt-dlp not found. Downloading...");
+        execSync(`curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o ${ytDlpPath} && chmod +x ${ytDlpPath}`);
+        console.log("✅ yt-dlp installed successfully.");
+    } else {
+        console.log("✅ yt-dlp is already installed.");
+    }
+}
+
+// Install yt-dlp on startup
+installYtDlp();
+
+const ytDlp = new YTDlpWrap(ytDlpPath);
 
 app.get('/download', async (req, res) => {
     const videoUrl = req.query.url;
@@ -17,7 +32,7 @@ app.get('/download', async (req, res) => {
     }
 
     const outputFileName = `audio_${Date.now()}.mp3`;
-    const outputPath = path.join('/tmp', outputFileName); // Use /tmp for temp storage
+    const outputPath = `/tmp/${outputFileName}`;
 
     try {
         await ytDlp.execPromise([
@@ -27,7 +42,7 @@ app.get('/download', async (req, res) => {
         ]);
 
         res.download(outputPath, outputFileName, () => {
-            fs.unlinkSync(outputPath); // Delete after sending
+            fs.unlinkSync(outputPath);
         });
     } catch (error) {
         console.error("Download error:", error);
@@ -38,5 +53,5 @@ app.get('/download', async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
 });

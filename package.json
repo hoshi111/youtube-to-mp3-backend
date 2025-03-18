@@ -4,8 +4,7 @@
   "description": "A YouTube audio downloader backend using yt-dlp and Express.js",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "postinstall": "curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o yt-dlp && chmod +x yt-dlp && mv yt-dlp /usr/local/bin/yt-dlp"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
